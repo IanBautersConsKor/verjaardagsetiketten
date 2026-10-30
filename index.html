@@ -1,0 +1,1135 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}</style>
+</head>
+<body>
+<title>Verjaardagsetiketten</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* Layout: werkbalk bovenaan; links de verjaardagen van de gekozen week, rechts het stickervel (instellingen + voorbeeld + PDF). */
+:root {
+  --bg: #edf0f3;
+  --surface: #ffffff;
+  --sunken: #f5f7f9;
+  --ink: #17212b;
+  --muted: #5c6773;
+  --line: #d4dae1;
+  --accent: #b0391c;
+  --accent-ink: #ffffff;
+  --accent-soft: #f8e4dd;
+  --ok: #2c7a4b; --ok-soft: #e1f1e7;
+  --warn: #9a6200; --warn-soft: #fbefd6;
+  --bad: #b3261e; --bad-soft: #fbe2df;
+  --sheet: #ffffff; --sheet-ink: #1b1b1b; --sheet-line: #c9ced4;
+  --f-display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11161c; --surface: #19212a; --sunken: #151c23; --ink: #e6ebf0; --muted: #93a0ad; --line: #2c3742;
+  --accent: #f07a55; --accent-ink: #1a0d08; --accent-soft: #3a2119;
+  --ok: #6fcf97; --ok-soft: #173326; --warn: #f2c063; --warn-soft: #3a2e14; --bad: #ff8a80; --bad-soft: #3d1c1a;
+  --sheet: #f4f4f2; --sheet-ink: #1b1b1b; --sheet-line: #b9bec4; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #11161c; --surface: #19212a; --sunken: #151c23; --ink: #e6ebf0; --muted: #93a0ad; --line: #2c3742;
+  --accent: #f07a55; --accent-ink: #1a0d08; --accent-soft: #3a2119;
+  --ok: #6fcf97; --ok-soft: #173326; --warn: #f2c063; --warn-soft: #3a2e14; --bad: #ff8a80; --bad-soft: #3d1c1a;
+  --sheet: #f4f4f2; --sheet-ink: #1b1b1b; --sheet-line: #b9bec4; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 14px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 40px; }
+.wrap { max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+h1, h2 { font-family: var(--f-display); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h1 { font-size: 26px; }
+h2 { font-size: 17px; }
+.eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+button, select, input { font: inherit; color: inherit; }
+button { cursor: pointer; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 12px; }
+button:hover { border-color: var(--muted); }
+button:focus-visible, input:focus-visible, select:focus-visible, label.file:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+button.primary:disabled { opacity: .45; cursor: not-allowed; }
+input[type=number], input[type=date], select { background: var(--sunken); border: 1px solid var(--line); border-radius: 7px; padding: 5px 8px; min-width: 0; }
+input[type=number] { width: 100%; font-family: var(--f-mono); }
+
+header.top { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: end; justify-content: space-between; }
+header.top p { margin: 4px 0 0; max-width: 62ch; color: var(--muted); }
+.source { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+label.file { display: inline-flex; align-items: center; gap: 8px; background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+label.file input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 3px 9px; border-radius: 999px; background: var(--sunken); border: 1px solid var(--line); white-space: nowrap; }
+.pill.example { background: var(--warn-soft); border-color: transparent; color: var(--warn); font-weight: 600; }
+.pill.real { background: var(--ok-soft); border-color: transparent; color: var(--ok); font-weight: 600; }
+.srclist { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pill button { border: 0; background: transparent; padding: 0 2px; font-size: 14px; line-height: 1; color: inherit; border-radius: 4px; }
+.planhead { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; align-items: start; }
+.planintro { margin: 4px 0 0; max-width: 72ch; }
+.planactions { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.planrow { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; font-size: 13px; color: var(--muted); }
+.planrow label { display: inline-flex; gap: 6px; align-items: center; }
+.planwrap { max-height: 440px; overflow: auto; }
+table.plan td { white-space: nowrap; font-variant-numeric: tabular-nums; }
+table.plan td:last-child { white-space: normal; min-width: 180px; }
+table.plan tbody tr { cursor: pointer; }
+table.plan tbody tr:hover td { background: var(--sunken); }
+table.plan tbody tr.sel td { background: var(--accent-soft); }
+table.plan tbody tr.sel td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+table.plan tbody tr.past td { color: var(--muted); }
+table.plan tbody tr:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+table.plan th { position: sticky; top: 0; z-index: 1; }
+.closedlist { padding: 0 12px 8px; display: flex; flex-direction: column; gap: 6px; }
+.closedrow { display: grid; grid-template-columns: minmax(0, 1.4fr) auto auto auto; gap: 8px; align-items: center; }
+.closedrow input[type=text] { background: var(--surface); border: 1px solid var(--line); border-radius: 7px; padding: 5px 8px; min-width: 0; font: inherit; }
+.closedfoot { display: flex; gap: 8px; flex-wrap: wrap; padding: 0 12px 12px; }
+@media (max-width: 560px) { .closedrow { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; } .closedrow input[type=text] { grid-column: 1 / -1; } }
+.chip.grp { background: var(--sunken); color: var(--muted); border: 1px solid var(--line); font-weight: 500; }
+.chip.grp.lk { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 960px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+.weekbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.weeknav { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.weeknav .range { font-family: var(--f-display); font-size: 20px; font-weight: 700; padding: 0 6px; }
+.weekopts { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; font-size: 13px; color: var(--muted); }
+.weekopts label { display: inline-flex; gap: 6px; align-items: center; }
+.weeknav .len { font-size: 12px; color: var(--accent); background: var(--accent-soft); border-radius: 5px; padding: 2px 7px; font-weight: 600; }
+.pickup { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 13px; background: var(--sunken); border-radius: 8px; padding: 8px 10px; }
+.pickup b { font-weight: 600; }
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; background: var(--sunken); padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+tr.off td:not(:first-child) { opacity: .45; }
+td.addr { white-space: pre-line; min-width: 200px; }
+td.day { white-space: nowrap; }
+.chip { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 5px; white-space: nowrap; }
+.chip.ok { background: var(--ok-soft); color: var(--ok); }
+.chip.warn { background: var(--warn-soft); color: var(--warn); }
+.chip.bad { background: var(--bad-soft); color: var(--bad); }
+.note { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.empty { padding: 28px 16px; text-align: center; color: var(--muted); }
+.tablefoot { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between; font-size: 13px; }
+
+details.issues { border: 1px solid var(--line); border-radius: 10px; background: var(--sunken); }
+details.issues summary { cursor: pointer; padding: 10px 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+details.issues .list { padding: 0 12px 12px; max-height: 280px; overflow: auto; font-size: 13px; display: flex; flex-direction: column; gap: 6px; }
+details.issues .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; border-top: 1px solid var(--line); padding-top: 6px; }
+
+.settings { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+.settings label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+.settings .wide { grid-column: 1 / -1; }
+.checks { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; }
+.checks label { display: inline-flex; gap: 6px; align-items: center; }
+.derived { font-size: 12px; color: var(--muted); }
+.derived.bad { color: var(--bad); }
+fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+legend { padding: 0; margin-bottom: 6px; }
+
+.sheets { display: flex; flex-direction: column; gap: 12px; }
+.sheet { position: relative; width: 100%; aspect-ratio: 210 / 297; background: var(--sheet); border-radius: 3px; box-shadow: 0 1px 2px rgba(0,0,0,.12), 0 6px 18px rgba(20,30,40,.10); overflow: hidden; max-width: 100%; }
+.lbl { position: absolute; outline: 1px dashed var(--sheet-line); color: var(--sheet-ink); font-family: Helvetica, Arial, sans-serif; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+.lbl { cursor: pointer; transition: background-color .12s; }
+.lbl:hover { background: rgba(176, 57, 28, .07); outline: 1px solid #b0391c; z-index: 1; }
+.lbl:focus-visible { outline: 2px solid #b0391c; z-index: 2; }
+.lbl.used { background: repeating-linear-gradient(45deg, #e3e5e8 0 5px, #d3d6da 5px 10px); align-items: center; }
+.lbl.used:hover { background: repeating-linear-gradient(45deg, #ece6e3 0 5px, #dccfca 5px 10px); }
+.usedmark { font-style: normal; font-size: 11px; font-weight: 600; color: #5a5f66; background: #f4f4f2; padding: 1px 6px; border-radius: 4px; font-family: var(--f-body); }
+.usedbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; font-size: 13px; color: var(--muted); background: var(--sunken); border-radius: 8px; padding: 8px 10px; }
+.usedbar button { padding: 4px 10px; font-size: 13px; }
+.lbl span { white-space: nowrap; display: block; }
+.lbl span.name { font-weight: 700; }
+.lbl.tight { outline: 2px solid var(--bad); }
+.sheetcap { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
+.dl { display: flex; flex-direction: column; gap: 6px; }
+.status { font-size: 13px; min-height: 1.2em; }
+.status.bad { color: var(--bad); }
+.status.ok { color: var(--ok); }
+footer { font-size: 12px; color: var(--muted); max-width: 80ch; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Conservatorium Kortrijk · verjaardagskaarten</div>
+      <h1>Verjaardagsetiketten</h1>
+      <p>Kies een zending uit het verzendschema, vink aan wie een kaart krijgt en download de PDF voor het stickervel. De werklijst blijft op je eigen computer: het bestand wordt alleen in deze browser gelezen.</p>
+    </div>
+    <div class="source">
+      <div class="srclist" id="sources"></div>
+      <label class="file" for="fileIn">Werklijsten openen (.xlsx)<input id="fileIn" type="file" accept=".xlsx,.xls,.csv" multiple></label>
+    </div>
+  </header>
+
+  <details class="issues" id="issues" hidden>
+    <summary><b>Controle geboortedatum, rijksregisternummer en adres</b> <span id="issueSummary"></span></summary>
+    <div class="list" id="issueList"></div>
+  </details>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="h-week">
+      <div class="weekbar">
+        <div>
+          <div class="eyebrow" id="h-week"><span id="batchName">Zending</span></div>
+          <div class="weeknav">
+            <button id="prevWeek" aria-label="Vorige zending">←</button>
+            <span class="range mono" id="rangeLabel"></span><span class="len" id="lenLabel" hidden></span>
+            <button id="nextWeek" aria-label="Volgende zending">→</button>
+            <button id="thisPickup" title="Ga naar de eerstvolgende zending in het schema">Volgende zending</button>
+          </div>
+        </div>
+        <div class="weekopts">
+          <span>Eigen periode:</span>
+          <label>Van <input type="date" id="from"></label>
+          <label>tot en met <input type="date" id="to"></label>
+        </div>
+      </div>
+      <div class="pickup" id="pickup"></div>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th><input type="checkbox" id="checkAll" aria-label="Alles selecteren"></th><th>Verjaardag</th><th>Naam</th><th>Adres op etiket</th><th>Controle</th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="tablefoot"><span id="countLabel"></span><span class="muted">Aangevinkt = er wordt een etiket gemaakt.</span></div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-sheet">
+      <div>
+        <div class="eyebrow">Afdrukken</div>
+        <h2 id="h-sheet">Stickervel</h2>
+      </div>
+      <fieldset>
+        <div class="settings">
+          <label class="wide">Model
+            <select id="preset">
+              <option value="a">A4 · 3 × 8 · 70 × 37 mm (zonder rand)</option>
+              <option value="b">A4 · 3 × 8 · 70 × 36 mm (4,5 mm rand boven/onder)</option>
+              <option value="c">A4 · 3 × 8 · 63,5 × 33,9 mm (met tussenruimte)</option>
+              <option value="custom">Eigen afmetingen</option>
+            </select>
+          </label>
+          <label>Kolommen <input type="number" id="s-cols" min="1" max="10" step="1"></label>
+          <label>Rijen <input type="number" id="s-rows" min="1" max="30" step="1"></label>
+          <label>Breedte etiket (mm) <input type="number" id="s-w" min="10" max="210" step="0.1"></label>
+          <label>Hoogte etiket (mm) <input type="number" id="s-h" min="5" max="297" step="0.1"></label>
+          <label>Tussenruimte hor. (mm) <input type="number" id="s-gx" min="0" max="30" step="0.1"></label>
+          <label>Tussenruimte vert. (mm) <input type="number" id="s-gy" min="0" max="30" step="0.1"></label>
+          <label>Marge boven (mm) <input type="number" id="s-mt" min="0" max="60" step="0.1"></label>
+          <label>Marge links (mm) <input type="number" id="s-ml" min="0" max="60" step="0.1"></label>
+          <label>Binnenmarge tekst (mm) <input type="number" id="s-pad" min="0" max="15" step="0.5"></label>
+          <label>Lettergrootte (pt) <input type="number" id="s-fs" min="6" max="16" step="0.5"></label>
+          <label>Printer verschuiving → (mm) <input type="number" id="s-ox" min="-10" max="10" step="0.1"></label>
+          <label>Printer verschuiving ↓ (mm) <input type="number" id="s-oy" min="-10" max="10" step="0.1"></label>
+        </div>
+        <div class="checks">
+          <label><input type="checkbox" id="s-center"> Marges automatisch centreren</label>
+          <label><input type="checkbox" id="s-bold"> Naam vet</label>
+          <label><input type="checkbox" id="s-border"> Kaders afdrukken (testvel)</label>
+          <label><input type="checkbox" id="s-zeros"> Voorloopnullen bij busnummer weglaten</label>
+        </div>
+        <div class="derived" id="derived"></div>
+      </fieldset>
+
+      <div class="dl">
+        <button class="primary" id="pdfBtn">PDF downloaden</button>
+        <div class="status" id="status"></div>
+      </div>
+      <div class="usedbar"><span id="usedInfo"></span><button id="clearUsed" hidden>Markeringen wissen</button></div>
+      <div class="sheets" id="sheets"></div>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="h-plan">
+    <div class="planhead">
+      <div>
+        <div class="eyebrow">Planning</div>
+        <h2 id="h-plan">Verzendschema</h2>
+        <p class="muted planintro">Elke vrijdag is er een ophaling. Die zending dekt de verjaardagen van donderdag tot en met woensdag een week later. Valt een ophaling in een vakantie of op een vrije dag, dan neemt de zending ervoor die periode mee.</p>
+      </div>
+      <div class="planactions">
+        <button class="primary" id="icsBtn">Agenda downloaden</button>
+        <div class="status" id="icsStatus"></div>
+      </div>
+    </div>
+    <div class="planrow">
+      <label>Al verzonden t.e.m. <input type="date" id="p-sent"></label>
+      <label>Laatste ophaling <input type="date" id="p-last"></label>
+      <span class="muted" id="planSummary"></span>
+    </div>
+    <div class="tablewrap planwrap">
+      <table class="plan">
+        <thead><tr><th>Klaarmaken</th><th>Ophaling</th><th>Verjaardagen</th><th>Dagen</th><th>Opmerking</th></tr></thead>
+        <tbody id="planBody"></tbody>
+      </table>
+    </div>
+    <details class="issues" id="closedBox">
+      <summary><b>Vakanties en vrije dagen</b> <span class="muted" id="closedCount"></span></summary>
+      <div class="closedlist" id="closedList"></div>
+      <div class="closedfoot">
+        <button id="addClosed">Vrije periode toevoegen</button>
+        <button id="resetClosed">Standaardlijst 2026–2027 herstellen</button>
+      </div>
+    </details>
+  </section>
+
+  <footer>
+    Ophaling op vrijdag, verwerking door Bpost vermoedelijk maandag of dinsdag, in de bus ten laatste donderdag: daarom loopt een zending van donderdag tot en met woensdag. Het rijksregisternummer wordt gecontroleerd op controlegetal en op de geboortedatum (ook bisnummers). Instellingen van het stickervel en het verzendschema worden in deze browser onthouden; de gegevens uit de werklijsten niet.
+  </footer>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const DAYS = ["zo", "ma", "di", "wo", "do", "vr", "za"];
+  const DAYS_LONG = ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"];
+  const MONTHS = ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
+
+  /* ---------- datums ---------- */
+  const mid = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+  const fmtShort = (d) => `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  const fmtDMY = (d) => `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+  const isLeap = (y) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+  const validYMD = (y, m, d) => { const t = new Date(y, m - 1, d); return t.getFullYear() === y && t.getMonth() === m - 1 && t.getDate() === d; };
+
+  function parseDate(v) {
+    if (v == null || v === "") return null;
+    if (v instanceof Date && !isNaN(v)) { const t = new Date(v.getTime() + 12 * 3600e3); return mid(t); }
+    if (typeof v === "number") { // Excel-serienummer
+      const t = new Date(Date.UTC(1899, 11, 30) + Math.round(v) * 86400e3);
+      return new Date(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate());
+    }
+    const s = String(v).trim();
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m && validYMD(+m[1], +m[2], +m[3])) return new Date(+m[1], +m[2] - 1, +m[3]);
+    m = s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})/);
+    if (m && validYMD(+m[3], +m[2], +m[1])) return new Date(+m[3], +m[2] - 1, +m[1]);
+    return null;
+  }
+
+  /* ---------- rijksregisternummer ---------- */
+  function normRrn(v) {
+    if (v == null || v === "") return "";
+    if (typeof v === "number") return String(Math.round(v)).padStart(11, "0");
+    const d = String(v).replace(/\D/g, "");
+    return d.length && d.length <= 11 ? d.padStart(11, "0") : d;
+  }
+  // Geeft { valid, date|null, partial, reason }
+  function decodeRrn(s) {
+    if (!s) return { valid: false, reason: "geen rijksregisternummer" };
+    if (s.length !== 11) return { valid: false, reason: `${s.length} cijfers i.p.v. 11` };
+    const first9 = parseInt(s.slice(0, 9), 10), check = parseInt(s.slice(9), 10);
+    let century = null;
+    if (97 - (first9 % 97) === check) century = 1900;
+    else if (97 - ((2000000000 + first9) % 97) === check) century = 2000;
+    if (!century) return { valid: false, reason: "controlegetal klopt niet" };
+    const yy = +s.slice(0, 2); let mm = +s.slice(2, 4); const dd = +s.slice(4, 6);
+    let bis = false;
+    if (mm > 40) { mm -= 40; bis = true; } else if (mm > 20) { mm -= 20; bis = true; }
+    if (mm === 0 || dd === 0) return { valid: true, date: null, partial: true, bis };
+    const y = century + yy;
+    if (!validYMD(y, mm, dd)) return { valid: false, reason: "geen geldige datum in nummer" };
+    return { valid: true, date: new Date(y, mm - 1, dd), bis };
+  }
+
+  /* ---------- adres ---------- */
+  const BE = new Set(["", "belgie", "belgië", "belgium", "belgique", "be", "bel"]);
+  function cleanBus(v) {
+    if (v == null) return "";
+    let s = typeof v === "number" ? String(v) : String(v).trim();
+    if (!s || /^[-–.\s]*$/.test(s) || /^0+$/.test(s)) return "";
+    s = s.replace(/^bus\s*/i, "");
+    if (settings.zeros && /^0+\d/.test(s)) s = s.replace(/^0+/, "");
+    return s;
+  }
+  function addressLines(r) {
+    const name = [r.roep || r.voornaam, r.naam].filter(Boolean).join(" ");
+    const bus = cleanBus(r.bus);
+    const street = [r.straat, r.huisnr != null ? String(r.huisnr).trim() : ""].filter(Boolean).join(" ") + (bus ? ` bus ${bus}` : "");
+    const city = [r.postcode != null ? String(r.postcode).trim() : "", r.gemeente].filter(Boolean).join(" ");
+    const lines = [name, street, city];
+    if (r.land && !BE.has(String(r.land).trim().toLowerCase())) lines.push(String(r.land).trim().toUpperCase());
+    return lines.filter((l) => l && l.trim());
+  }
+
+  /* ---------- kolommen herkennen ---------- */
+  const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z]/g, "");
+  const COLS = {
+    naam: ["naam", "familienaam", "achternaam"], voornaam: ["voornaam"], roep: ["roepnaam"],
+    geb: ["geboortedatum", "geboortedag", "gebdatum"], rrn: ["rijksregisternummer", "rijksregisternr", "rrn", "insz", "inszummer", "nationaalnummer"],
+    straat: ["straatnaam", "straat"], huisnr: ["huisnummer", "huisnr", "nr"], bus: ["busnummer", "bus", "busnr"],
+    postcode: ["postcode", "postnummer"], gemeente: ["gemeente", "woonplaats", "stad"], land: ["land"],
+  };
+  function mapRows(raw) {
+    if (!raw.length) return { rows: [], missing: Object.keys(COLS) };
+    const headers = Object.keys(raw[0]);
+    const map = {}, missing = [];
+    for (const [k, alts] of Object.entries(COLS)) {
+      const h = headers.find((h) => alts.includes(norm(h)));
+      if (h) map[k] = h; else if (!["roep", "land", "bus", "rrn", "voornaam"].includes(k)) missing.push(k);
+    }
+    const rows = raw.map((o, i) => {
+      const g = (k) => (map[k] ? o[map[k]] : null);
+      return { id: 0, naam: str(g("naam")), voornaam: str(g("voornaam")), roep: str(g("roep")), gebRaw: g("geb"),
+        rrnRaw: g("rrn"), straat: str(g("straat")), huisnr: g("huisnr"), bus: g("bus"), postcode: g("postcode"), gemeente: str(g("gemeente")), land: str(g("land")) };
+    }).filter((r) => r.naam || r.voornaam);
+    // Geen voornaamkolom en "Achternaam, Voornaam" in één kolom: opsplitsen.
+    if (!map.voornaam) for (const r of rows) {
+      const m = r.naam.match(/^([^,]+),\s*(.+)$/);
+      if (m) { r.naam = m[1].trim(); r.voornaam = m[2].trim(); }
+    }
+    return { rows, missing, hasFirst: !!map.voornaam };
+  }
+  const str = (v) => (v == null ? "" : String(v).trim());
+
+  function enrich(r) {
+    r.geb = parseDate(r.gebRaw);
+    r.rrn = normRrn(r.rrnRaw);
+    const dec = decodeRrn(r.rrn);
+    r.check = "ok"; r.checkText = "klopt"; r.checkNote = "";
+    if (!r.rrn) { r.check = "warn"; r.checkText = "geen RRN"; }
+    else if (!dec.valid) { r.check = "bad"; r.checkText = "RRN ongeldig"; r.checkNote = dec.reason; }
+    else if (dec.partial) { r.check = "warn"; r.checkText = "datum onvolledig in RRN"; }
+    else if (!r.geb) { r.check = "warn"; r.checkText = "datum uit RRN"; r.checkNote = "geen geboortedatum in de lijst"; }
+    else if (dec.date.getTime() !== r.geb.getTime()) { r.check = "bad"; r.checkText = "datum wijkt af"; r.checkNote = `lijst ${fmtDMY(r.geb)} · RRN ${fmtDMY(dec.date)}`; }
+    r.rrnDate = dec.valid ? dec.date || null : null;
+    // Bij twijfel geldt de datum uit een geldig rijksregisternummer.
+    r.bday = r.rrnDate || r.geb;
+    const lines = addressLines(r);
+    r.addrIncomplete = !r.straat || r.huisnr == null || r.huisnr === "" || !r.postcode || !r.gemeente;
+    return r;
+  }
+
+  /* ---------- voorbeeldgegevens (fictief) ---------- */
+  function makeRrn(d, seq) {
+    const y = d.getFullYear();
+    const base = String(y % 100).padStart(2, "0") + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0") + String(seq).padStart(3, "0");
+    const n = parseInt(base, 10) + (y >= 2000 ? 2000000000 : 0);
+    return base + String(97 - (n % 97)).padStart(2, "0");
+  }
+  function sampleRows() {
+    const p = periodStart || defaultPeriodStart();
+    const mk = (off, yr, naam, voornaam, straat, nr, bus, pc, gem, rrnShift) => {
+      const d = addDays(p, off); const b = new Date(yr, d.getMonth(), d.getDate());
+      const rrnDate = rrnShift ? addDays(b, rrnShift) : b;
+      return { naam, voornaam, roepnaam: voornaam, geboortedatum: `${b.getFullYear()}-${String(b.getMonth() + 1).padStart(2, "0")}-${String(b.getDate()).padStart(2, "0")}`,
+        rijksregisternummer: makeRrn(rrnDate, 101 + off * 2), straatnaam: straat, huisnummer: nr, busnummer: bus, postcode: pc, gemeente: gem, land: "België" };
+    };
+    return [
+      mk(0, 2014, "Voorbeeld", "Lotte", "Doorniksestraat", 12, null, 8500, "Kortrijk"),
+      mk(1, 2011, "Voorbeeld", "Mats", "Gentsesteenweg", 145, "0021", 8500, "Kortrijk"),
+      mk(1, 2009, "Proefnaam", "Noor", "Bissegemstraat", "7A", null, 8501, "Heule"),
+      mk(3, 2017, "Proefnaam", "Jules", "Kerkstraat", 3, "B", 8530, "Harelbeke", 2),
+      mk(5, 2006, "Testleerling", "Fien", "Rue de Tournai", 88, null, 7700, "Mouscron"),
+      mk(6, 2012, "Testleerling", "Wout", "Stationsplein", 1, 2.4, 8790, "Waregem"),
+      mk(12, 2013, "Andereweek", "Sam", "Marktstraat", 5, null, 8500, "Kortrijk"),
+    ];
+  }
+
+  /* ---------- instellingen ---------- */
+  const PRESETS = {
+    a: { cols: 3, rows: 8, w: 70, h: 37.125, gx: 0, gy: 0, mt: 0, ml: 0, center: true },
+    b: { cols: 3, rows: 8, w: 70, h: 36, gx: 0, gy: 0, mt: 4.5, ml: 0, center: true },
+    c: { cols: 3, rows: 8, w: 63.5, h: 33.9, gx: 2.5, gy: 0, mt: 13, ml: 7.2, center: true },
+  };
+  const DEFAULTS = { preset: "a", ...PRESETS.a, pad: 5, fs: 10, ox: 0, oy: 0, bold: false, border: false, zeros: true, startDay: 1 };
+  let settings = { ...DEFAULTS };
+  try { const s = JSON.parse(localStorage.getItem("vjk-settings") || "null"); if (s) settings = { ...DEFAULTS, ...s }; } catch (e) {}
+  settings.startDay = 4; // zendingen lopen van donderdag tot en met woensdag
+  const save = () => { try { localStorage.setItem("vjk-settings", JSON.stringify(settings)); } catch (e) {} };
+
+  const numIds = { cols: "s-cols", rows: "s-rows", w: "s-w", h: "s-h", gx: "s-gx", gy: "s-gy", mt: "s-mt", ml: "s-ml", pad: "s-pad", fs: "s-fs", ox: "s-ox", oy: "s-oy" };
+  const boolIds = { center: "s-center", bold: "s-bold", border: "s-border", zeros: "s-zeros" };
+
+  function layout() {
+    const s = settings;
+    let mt = s.mt, ml = s.ml;
+    const totW = s.cols * s.w + (s.cols - 1) * s.gx, totH = s.rows * s.h + (s.rows - 1) * s.gy;
+    if (s.center) { ml = (210 - totW) / 2; mt = (297 - totH) / 2; }
+    return { mt, ml, totW, totH, per: s.cols * s.rows };
+  }
+  function writeSettingsToForm() {
+    for (const [k, id] of Object.entries(numIds)) $(id).value = settings[k];
+    for (const [k, id] of Object.entries(boolIds)) $(id).checked = !!settings[k];
+    $("preset").value = settings.preset;
+    const L = layout();
+    $("s-mt").disabled = $("s-ml").disabled = settings.center;
+    if (settings.center) { $("s-mt").value = round1(L.mt); $("s-ml").value = round1(L.ml); }
+  }
+  const round1 = (n) => Math.round(n * 100) / 100;
+
+  /* ---------- toestand ---------- */
+  let rows = [];
+  let isSample = true;
+  let periodStart = null, periodEnd = null;
+  const MAX_DAYS = 100;
+  const daysBetween = (a, b) => Math.round((b - a) / 86400e3);
+  function setWeek(start) { periodStart = start; periodEnd = addDays(start, 6); }
+  function setRange(a, b) {
+    if (b < a) [a, b] = [b, a];
+    if (daysBetween(a, b) > MAX_DAYS - 1) b = addDays(a, MAX_DAYS - 1);
+    periodStart = a; periodEnd = b;
+  }
+  const excluded = new Set();
+
+  function nextPickupFriday(from) { // vrijdag vandaag of eerstvolgende
+    const t = mid(from); const diff = (5 - t.getDay() + 7) % 7; return addDays(t, diff);
+  }
+  function defaultPeriodStart() {
+    const fri = nextPickupFriday(new Date());
+    const sd = settings.startDay; let d = addDays(fri, 1);
+    while (d.getDay() !== sd) d = addDays(d, 1);
+    return d;
+  }
+  function snapToStart(d) { let t = mid(d); while (t.getDay() !== settings.startDay) t = addDays(t, -1); return t; }
+
+  function birthdaysInPeriod() {
+    const days = Array.from({ length: daysBetween(periodStart, periodEnd) + 1 }, (_, i) => addDays(periodStart, i));
+    const out = [];
+    for (const r of rows) {
+      if (!r.bday) continue;
+      for (const d of days) {
+        let bm = r.bday.getMonth(), bd = r.bday.getDate();
+        if (bm === 1 && bd === 29 && !isLeap(d.getFullYear())) bd = 28; // 29 feb → 28 feb
+        if (d.getMonth() === bm && d.getDate() === bd) { out.push({ r, on: d, age: d.getFullYear() - r.bday.getFullYear() }); break; }
+      }
+    }
+    out.sort((a, b) => a.on - b.on || a.r.naam.localeCompare(b.r.naam, "nl") || a.r.voornaam.localeCompare(b.r.voornaam, "nl"));
+    return out;
+  }
+
+
+  /* ---------- verzendschema ---------- */
+  const DEFAULT_CLOSED = [
+    { naam: "Herfstvakantie", van: "2026-11-02", tot: "2026-11-08" },
+    { naam: "Wapenstilstand", van: "2026-11-11", tot: "2026-11-11" },
+    { naam: "Kerstvakantie", van: "2026-12-21", tot: "2027-01-03" },
+    { naam: "Krokusvakantie", van: "2027-02-08", tot: "2027-02-14" },
+    { naam: "Paasvakantie", van: "2027-03-29", tot: "2027-04-11" },
+    { naam: "Dag van de Arbeid", van: "2027-05-01", tot: "2027-05-01" },
+    { naam: "Hemelvaart", van: "2027-05-06", tot: "2027-05-06" },
+    { naam: "Pinkstermaandag", van: "2027-05-17", tot: "2027-05-17" },
+    { naam: "Zomervakantie", van: "2027-07-01", tot: "2027-08-31" },
+  ];
+  const DEFAULT_PLAN = { sentThrough: "2026-11-15", lastPickup: "2026-10-30" };
+  let plan = { ...DEFAULT_PLAN, closed: DEFAULT_CLOSED.map((x) => ({ ...x })) };
+  try { const p = JSON.parse(localStorage.getItem("vjk-plan") || "null"); if (p && Array.isArray(p.closed)) plan = { ...DEFAULT_PLAN, ...p }; } catch (e) {}
+  const savePlan = () => { try { localStorage.setItem("vjk-plan", JSON.stringify(plan)); } catch (e) {} };
+  const isoDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  function closedOn(d) {
+    for (const c of plan.closed) {
+      const a = parseDate(c.van), b = parseDate(c.tot || c.van);
+      if (a && b && d >= a && d <= b) return c;
+    }
+    return null;
+  }
+  const isOpen = (d) => d.getDay() !== 0 && d.getDay() !== 6 && !closedOn(d);
+
+  // Zending op vrijdag F dekt de verjaardagen vanaf het einde van de vorige zending
+  // tot de dag vóór de eerste dag die de volgende ophaling dekt (volgende open vrijdag + 6, een donderdag).
+  function buildSchedule() {
+    const C = parseDate(plan.sentThrough), L = parseDate(plan.lastPickup);
+    if (!C || !L) return [];
+    let last = C;
+    for (const c of plan.closed) { const b = parseDate(c.tot || c.van); if (b && b > last) last = b; }
+    const horizon = addDays(last, 35);
+    const fridays = [];
+    let f = addDays(L, 1); while (f.getDay() !== 5) f = addDays(f, 1);
+    for (; f <= addDays(horizon, 21); f = addDays(f, 7)) if (isOpen(f)) fridays.push(f);
+    const out = []; let start = addDays(C, 1);
+    for (let k = 0; k < fridays.length - 1 && start <= horizon; k++) {
+      const F = fridays[k], end = addDays(fridays[k + 1], 5);
+      if (end < start) continue;
+      let prep = addDays(F, -1), guard = 0;
+      while (!isOpen(prep) && guard++ < 14) prep = addDays(prep, -1);
+      const reasons = [];
+      for (let g = addDays(F, 7); g < fridays[k + 1]; g = addDays(g, 7)) { const c = closedOn(g); if (c && !reasons.includes(c.naam)) reasons.push(c.naam); }
+      let prepNote = "";
+      if (prep.getTime() !== addDays(F, -1).getTime()) { const c = closedOn(addDays(F, -1)); prepNote = `klaarmaken op ${DAYS_LONG[prep.getDay()]}${c ? ` (${c.naam.toLowerCase()})` : ""}`; }
+      out.push({ F, prep, start, end, days: daysBetween(start, end) + 1, reasons, prepNote, early: start < addDays(F, 6) });
+      start = addDays(end, 1);
+    }
+    return out;
+  }
+  let schedule = [];
+  let batchIdx = -1;
+  function upcomingIdx() {
+    const today = mid(new Date());
+    const i = schedule.findIndex((b) => b.F >= today);
+    return i >= 0 ? i : schedule.length - 1;
+  }
+  function selectBatch(i) {
+    if (i < 0 || i >= schedule.length) return false;
+    batchIdx = i; periodStart = schedule[i].start; periodEnd = schedule[i].end; return true;
+  }
+  function batchNote(b) {
+    const n = [];
+    if (b.reasons.length) n.push(`langer door ${b.reasons.join(", ").toLowerCase()}`);
+    if (b.prepNote) n.push(b.prepNote);
+    if (b.early) n.push("eerste dagen kunnen een dag te laat aankomen");
+    return n.join(" · ");
+  }
+  function renderPlan() {
+    schedule = buildSchedule();
+    $("p-sent").value = plan.sentThrough; $("p-last").value = plan.lastPickup;
+    const today = mid(new Date());
+    const fmtD = (d) => `${DAYS[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}/${String(d.getFullYear()).slice(2)}`;
+    $("planBody").innerHTML = schedule.length ? schedule.map((b, i) => `<tr tabindex="0" data-i="${i}" class="${i === batchIdx ? "sel" : ""} ${b.F < today ? "past" : ""}">
+        <td class="mono">${fmtD(b.prep)}</td><td class="mono">${fmtD(b.F)}</td>
+        <td class="mono">${fmtD(b.start)} – ${fmtD(b.end)}</td>
+        <td class="mono">${b.days}</td>
+        <td>${b.reasons.length ? `<span class="chip warn">langer door ${esc(b.reasons.join(", ").toLowerCase())}</span> ` : ""}${b.prepNote ? `<span class="chip grp">${esc(b.prepNote)}</span>` : ""}${b.early ? `<div class="note">Begint vroeg na de ophaling: verjaardagen op de eerste dagen kunnen een dag te laat aankomen.</div>` : ""}</td></tr>`).join("")
+      : `<tr><td colspan="5" class="empty">Vul hierboven in tot wanneer er al verzonden is.</td></tr>`;
+    if (schedule.length) {
+      const a = schedule[0], z = schedule[schedule.length - 1];
+      $("planSummary").textContent = `${schedule.length} zendingen · verjaardagen ${fmtDMY(a.start)} t.e.m. ${fmtDMY(z.end)}`;
+    } else $("planSummary").textContent = "";
+    $("closedCount").textContent = `(${plan.closed.length})`;
+    renderClosed();
+  }
+  function renderClosed() {
+    $("closedList").innerHTML = plan.closed.map((c, i) => `<div class="closedrow">
+      <input type="text" id="c-naam-${i}" data-i="${i}" data-k="naam" value="${esc(c.naam || "")}" aria-label="Naam">
+      <input type="date" id="c-van-${i}" data-i="${i}" data-k="van" value="${esc(c.van || "")}" aria-label="Van">
+      <input type="date" id="c-tot-${i}" data-i="${i}" data-k="tot" value="${esc(c.tot || "")}" aria-label="Tot en met">
+      <button type="button" data-del="${i}" aria-label="${esc(c.naam || "Periode")} verwijderen">×</button></div>`).join("");
+  }
+  function planChanged() {
+    savePlan();
+    const keep = batchIdx >= 0 ? schedule[batchIdx] && schedule[batchIdx].F.getTime() : null;
+    renderPlan();
+    if (keep != null) { const i = schedule.findIndex((b) => b.F.getTime() === keep); if (!selectBatch(i)) selectBatch(upcomingIdx()); }
+    render();
+  }
+  $("closedList").addEventListener("change", (e) => {
+    const t = e.target; if (t.dataset.i == null) return;
+    const c = plan.closed[+t.dataset.i]; c[t.dataset.k] = t.value;
+    if (t.dataset.k === "van" && (!c.tot || c.tot < c.van)) c.tot = c.van;
+    planChanged();
+  });
+  $("closedList").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-del]"); if (!b) return;
+    plan.closed.splice(+b.dataset.del, 1); planChanged();
+  });
+  $("addClosed").addEventListener("click", () => {
+    const t = isoDate(mid(new Date()));
+    plan.closed.push({ naam: "Vrije dag", van: t, tot: t }); planChanged();
+    const inp = document.getElementById(`c-naam-${plan.closed.length - 1}`); if (inp) { inp.focus(); inp.select(); }
+  });
+  $("resetClosed").addEventListener("click", () => { plan.closed = DEFAULT_CLOSED.map((x) => ({ ...x })); planChanged(); });
+  $("p-sent").addEventListener("change", (e) => { if (parseDate(e.target.value)) { plan.sentThrough = e.target.value; batchIdx = -1; planChanged(); selectBatch(upcomingIdx()); render(); } });
+  $("p-last").addEventListener("change", (e) => { if (parseDate(e.target.value)) { plan.lastPickup = e.target.value; batchIdx = -1; planChanged(); selectBatch(upcomingIdx()); render(); } });
+  $("planBody").addEventListener("click", (e) => { const tr = e.target.closest("tr[data-i]"); if (tr && selectBatch(+tr.dataset.i)) render(); });
+  $("planBody").addEventListener("keydown", (e) => {
+    const tr = e.target.closest && e.target.closest("tr[data-i]");
+    if (tr && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); if (selectBatch(+tr.dataset.i)) { render(); const again = $("planBody").querySelector(`tr[data-i="${tr.dataset.i}"]`); if (again) again.focus(); } }
+  });
+
+  /* ---------- agenda (.ics in .zip) ---------- */
+  function icsEscape(t) { return String(t).replace(/\\/g, "\\\\").replace(/;/g, "\;").replace(/,/g, "\\,").replace(/\n/g, "\\n"); }
+  function icsFold(line) {
+    const out = []; let cur = "";
+    for (const ch of line) {
+      if (new TextEncoder().encode(cur + ch).length > 74) { out.push(cur); cur = " " + ch; } else cur += ch;
+    }
+    out.push(cur); return out.join("\r\n");
+  }
+  function buildIcs(list) {
+    const ymd = (d) => isoDate(d).replace(/-/g, "");
+    const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
+    const L = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Conservatorium Kortrijk//Verjaardagsetiketten//NL", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:Verjaardagskaarten"];
+    for (const b of list) {
+      const range = `${b.start.getDate()} ${MONTHS[b.start.getMonth()]} – ${b.end.getDate()} ${MONTHS[b.end.getMonth()]}`;
+      const desc = [`Etiketten afdrukken en kaarten klaarleggen voor de ophaling van ${DAYS_LONG[b.F.getDay()]} ${fmtDMY(b.F)}.`,
+        `Verjaardagen van ${DAYS_LONG[b.start.getDay()]} ${fmtDMY(b.start)} t.e.m. ${DAYS_LONG[b.end.getDay()]} ${fmtDMY(b.end)} (${b.days} dagen).`,
+        b.reasons.length ? `Langere periode door ${b.reasons.join(", ").toLowerCase()}.` : "",
+        b.prepNote ? `Let op: ${b.prepNote}.` : ""].filter(Boolean).join("\n");
+      L.push("BEGIN:VEVENT", `UID:verjaardagskaarten-${ymd(b.F)}@conservatorium-kortrijk`, `DTSTAMP:${stamp}`,
+        `DTSTART;VALUE=DATE:${ymd(b.prep)}`, `DTEND;VALUE=DATE:${ymd(addDays(b.prep, 1))}`,
+        icsFold(`SUMMARY:${icsEscape(`Verjaardagskaarten klaarmaken (${range})`)}`), icsFold(`DESCRIPTION:${icsEscape(desc)}`),
+        "TRANSP:TRANSPARENT", "BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER:PT9H", icsFold(`DESCRIPTION:${icsEscape(`Verjaardagskaarten klaarmaken (${range})`)}`), "END:VALARM", "END:VEVENT");
+    }
+    L.push("END:VCALENDAR");
+    return L.join("\r\n") + "\r\n";
+  }
+  // Minimale zip (zonder compressie) met één bestand.
+  const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function crc32(u8) { let c = 0xffffffff; for (let i = 0; i < u8.length; i++) c = CRC[(c ^ u8[i]) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
+  function zipOne(name, text) {
+    const enc = new TextEncoder(), data = enc.encode(text), fn = enc.encode(name), crc = crc32(data), now = new Date();
+    const time = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+    const date = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+    const lh = new DataView(new ArrayBuffer(30));
+    [[0, 0x04034b50, 4], [4, 20, 2], [6, 0x0800, 2], [8, 0, 2], [10, time, 2], [12, date, 2], [14, crc, 4], [18, data.length, 4], [22, data.length, 4], [26, fn.length, 2], [28, 0, 2]]
+      .forEach(([o, v, n]) => n === 4 ? lh.setUint32(o, v, true) : lh.setUint16(o, v, true));
+    const cd = new DataView(new ArrayBuffer(46));
+    [[0, 0x02014b50, 4], [4, 20, 2], [6, 20, 2], [8, 0x0800, 2], [10, 0, 2], [12, time, 2], [14, date, 2], [16, crc, 4], [20, data.length, 4], [24, data.length, 4], [28, fn.length, 2], [30, 0, 2], [32, 0, 2], [34, 0, 2], [36, 0, 2], [38, 0, 4], [42, 0, 4]]
+      .forEach(([o, v, n]) => n === 4 ? cd.setUint32(o, v, true) : cd.setUint16(o, v, true));
+    const off = 30 + fn.length + data.length, cdLen = 46 + fn.length;
+    const end = new DataView(new ArrayBuffer(22));
+    [[0, 0x06054b50, 4], [4, 0, 2], [6, 0, 2], [8, 1, 2], [10, 1, 2], [12, cdLen, 4], [16, off, 4], [20, 0, 2]]
+      .forEach(([o, v, n]) => n === 4 ? end.setUint32(o, v, true) : end.setUint16(o, v, true));
+    return new Blob([lh, fn, data, cd, fn, end], { type: "application/zip" });
+  }
+  async function saveFile(filename, blob, st) {
+    try {
+      if (downloads) { await downloads.save({ filename, data: blob }); }
+      else {
+        const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      }
+      return true;
+    } catch (e) {
+      st.className = "status bad";
+      st.textContent = e && e.code === "declined" ? "Downloaden geannuleerd." : `Downloaden lukte niet${e && e.message ? ": " + e.message : ""}.`;
+      return false;
+    }
+  }
+  $("icsBtn").addEventListener("click", async () => {
+    const st = $("icsStatus"); st.className = "status"; st.textContent = "";
+    const today = mid(new Date());
+    const list = schedule.filter((b) => b.F >= today);
+    if (!list.length) { st.className = "status bad"; st.textContent = "Er zijn geen komende zendingen in het schema."; return; }
+    const blob = zipOne("verjaardagskaarten.ics", buildIcs(list));
+    if (await saveFile("verjaardagskaarten-agenda.zip", blob, st)) {
+      st.className = "status ok"; st.textContent = `${list.length} afspraken. Open de zip en dubbelklik op verjaardagskaarten.ics.`;
+    }
+  });
+
+  /* ---------- weergave ---------- */
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  let current = [];
+
+  function render() {
+    const end = periodEnd, nDays = daysBetween(periodStart, end) + 1;
+    $("rangeLabel").textContent = `${fmtShort(periodStart)} – ${fmtShort(end)} ${end.getFullYear()}`;
+    $("lenLabel").hidden = nDays === 7;
+    $("lenLabel").textContent = `${nDays} dag${nDays === 1 ? "" : "en"}`;
+    const b = batchIdx >= 0 ? schedule[batchIdx] : null;
+    let fri; if (b) fri = b.F; else { fri = addDays(periodStart, -1); while (fri.getDay() !== 5) fri = addDays(fri, -1); }
+    const mon = addDays(fri, 3), tue = addDays(fri, 4);
+    const today = mid(new Date());
+    const past = fri < today;
+    $("batchName").textContent = b ? `Zending ${batchIdx + 1} van ${schedule.length}` : "Eigen periode";
+    $("pickup").innerHTML = (b ? `<span>Klaarmaken <b>${DAYS_LONG[b.prep.getDay()]} ${b.prep.getDate()} ${MONTHS[b.prep.getMonth()]}</b></span><span class="muted">·</span>` : "")
+      + `<span>Ophaling <b>${DAYS_LONG[fri.getDay()]} ${fri.getDate()} ${MONTHS[fri.getMonth()]}</b></span><span class="muted">→ Bpost verwerkt ± ${fmtShort(mon)} / ${fmtShort(tue)}</span>`
+      + (b && b.reasons.length ? `<span class="chip warn">langer door ${esc(b.reasons.join(", ").toLowerCase())}</span>` : "")
+      + (past ? '<span class="chip warn">ophaling al voorbij</span>' : "");
+    document.querySelectorAll("#planBody tr[data-i]").forEach((tr) => tr.classList.toggle("sel", +tr.dataset.i === batchIdx));
+    const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    $("from").value = iso(periodStart); $("to").value = iso(end);
+
+    current = birthdaysInPeriod();
+    const tb = $("tbody");
+    if (!current.length) {
+      tb.innerHTML = `<tr><td colspan="5" class="empty">Geen verjaardagen in deze periode${rows.length ? "" : " — open eerst de werklijst"}.</td></tr>`;
+    } else {
+      tb.innerHTML = current.map(({ r, on, age }) => {
+        const off = excluded.has(r.id);
+        const lines = addressLines(r);
+        const warnAddr = r.addrIncomplete ? '<div class="note" style="color:var(--warn)">Adres onvolledig</div>' : "";
+        return `<tr class="${off ? "off" : ""}">
+          <td><input type="checkbox" data-id="${r.id}" ${off ? "" : "checked"} aria-label="Etiket voor ${esc(lines[0] || "")}"></td>
+          <td class="day"><span class="mono">${fmtShort(on)}</span><div class="note">wordt ${age}</div></td>
+          <td>${esc(lines[0] || "")}<div class="note"><span class="chip grp ${r.group === "Leerkracht" ? "lk" : ""}">${esc(r.group)}</span> <span class="mono">${r.bday ? fmtDMY(r.bday) : "—"}</span></div></td>
+          <td class="addr">${esc(lines.slice(1).join("\n"))}${warnAddr}</td>
+          <td><span class="chip ${r.check}">${esc(r.checkText)}</span>${r.checkNote ? `<div class="note">${esc(r.checkNote)}</div>` : ""}${r.dupOf ? `<div class="note"><span class="chip warn">dubbel</span> staat ook in lijst ${esc(r.dupOf.group.toLowerCase() + "en")}</div>` : ""}${r.rrn ? `<div class="note mono">${esc(fmtRrn(r.rrn))}</div>` : ""}</td>
+        </tr>`;
+      }).join("");
+    }
+    const sel = selected();
+    $("countLabel").innerHTML = `<b>${sel.length}</b> van ${current.length} geselecteerd`;
+    $("checkAll").checked = current.length > 0 && sel.length === current.length;
+    $("checkAll").indeterminate = sel.length > 0 && sel.length < current.length;
+    renderSheets();
+  }
+  const fmtRrn = (s) => s.length === 11 ? `${s.slice(0, 2)}.${s.slice(2, 4)}.${s.slice(4, 6)}-${s.slice(6, 9)}.${s.slice(9)}` : s;
+  const selected = () => current.filter((c) => !excluded.has(c.r.id));
+
+  function renderIssues() {
+    const bad = rows.filter((r) => r.check !== "ok" || r.addrIncomplete || r.dupOf);
+    const det = $("issues");
+    if (!rows.length) { det.hidden = true; return; }
+    det.hidden = false;
+    const nBad = rows.filter((r) => r.check === "bad").length, nWarn = bad.length - nBad;
+    $("issueSummary").innerHTML = bad.length
+      ? `<span class="chip bad">${nBad} fout</span> <span class="chip warn">${nWarn} let op</span> <span class="muted">van ${rows.length} personen</span>`
+      : `<span class="chip ok">alle ${rows.length} geboortedata kloppen</span>`;
+    $("issueList").innerHTML = bad.length ? bad.map((r) => `<div class="row"><div>${esc([r.roep || r.voornaam, r.naam].join(" "))} <span class="chip grp ${r.group === "Leerkracht" ? "lk" : ""}">${esc(r.group)}</span> <span class="muted mono">${r.rrn ? esc(fmtRrn(r.rrn)) : ""}</span>${r.checkNote ? `<div class="note">${esc(r.checkNote)}</div>` : ""}</div><div>${r.check !== "ok" ? `<span class="chip ${r.check}">${esc(r.checkText)}</span>` : ""}${r.addrIncomplete ? ' <span class="chip warn">adres ontbreekt</span>' : ""}${r.dupOf ? ' <span class="chip warn">dubbel</span>' : ""}</div></div>`).join("")
+      + `<div class="note">Bij een afwijking wordt de datum uit het rijksregisternummer gebruikt om de week te bepalen. Wie geen volledig adres heeft, wordt niet aangevinkt.</div>` : `<div class="note">Geen afwijkingen gevonden.</div>`;
+  }
+
+  /* ---------- tekst passend maken ---------- */
+  const PT = 0.352778; // mm per punt
+  // Meten met dezelfde lettermaten als de PDF, zodat voorbeeld en afdruk gelijk lopen.
+  let measureDoc = null;
+  function textWidthMm(text, pt, bold) {
+    if (!measureDoc) measureDoc = new window.jspdf.jsPDF({ unit: "mm", format: "a4" });
+    measureDoc.setFont("helvetica", bold ? "bold" : "normal"); measureDoc.setFontSize(pt);
+    return measureDoc.getTextWidth(text);
+  }
+  // Woorden die samen moeten blijven: "bus 12", huisnummer bij straat, postcode bij gemeente.
+  function tokens(line) {
+    const raw = line.split(/ +/).filter(Boolean), out = [];
+    for (let i = 0; i < raw.length; i++) {
+      const t = raw[i];
+      if (/^bus$/i.test(t) && i + 1 < raw.length) { const g = t + " " + raw[++i]; if (out.length) out[out.length - 1] += " " + g; else out.push(g); continue; }
+      if (/^\d/.test(t) && out.length && i > 0) { out[out.length - 1] += " " + t; continue; }
+      if (/^\d/.test(t) && i === 0 && raw.length > 1) { out.push(t + " " + raw[++i]); continue; }
+      out.push(t);
+    }
+    return out;
+  }
+  function wrapLine(text, bold, size, maxW) {
+    const out = []; let cur = "";
+    const push = (t) => { if (t) out.push({ t, bold }); };
+    for (let tok of tokens(text)) {
+      const test = cur ? cur + " " + tok : tok;
+      if (textWidthMm(test, size, bold) <= maxW) { cur = test; continue; }
+      push(cur); cur = "";
+      while (textWidthMm(tok, size, bold) > maxW && tok.length > 1) { // te lang woord: hard afbreken
+        let k = tok.length - 1; while (k > 1 && textWidthMm(tok.slice(0, k) + "-", size, bold) > maxW) k--;
+        push(tok.slice(0, k) + "-"); tok = tok.slice(k);
+      }
+      cur = tok;
+    }
+    push(cur);
+    // Twee regels? Kies het breekpunt met de gelijkste regellengtes (geen verweesd woord).
+    if (out.length === 2 && !out[0].t.endsWith("-")) {
+      const tk = tokens(text); let best = null;
+      for (let k = 1; k < tk.length; k++) {
+        const a = tk.slice(0, k).join(" "), b = tk.slice(k).join(" ");
+        const wa = textWidthMm(a, size, bold), wb = textWidthMm(b, size, bold);
+        if (wa > maxW || wb > maxW) continue;
+        const m = Math.max(wa, wb);
+        if (!best || m < best.m) best = { m, a, b };
+      }
+      if (best) return [{ t: best.a, bold }, { t: best.b, bold }];
+    }
+    return out;
+  }
+  // Geeft { lines: [{t, bold}], size, shrunk, wrapped }
+  // Eerst een nieuwe regel gebruiken; pas verkleinen als het etiket te weinig hoogte heeft.
+  function fitLabel(lines, maxW, maxH, pt, boldFirst) {
+    const base = lines.map((t, i) => ({ t, bold: boldFirst && i === 0 }));
+    const safeW = maxW * 0.97; // kleine reserve voor afwijkingen van printer en lettertype
+    const lh = (sz) => sz * PT * 1.22;
+    const minPt = 6.5;
+    for (let sz = pt; sz >= minPt - 1e-9; sz -= 0.25) {
+      const w = base.flatMap((l) => wrapLine(l.t, l.bold, sz, safeW));
+      if (w.length * lh(sz) <= maxH) return { lines: w, size: sz, shrunk: sz < pt, wrapped: w.length > base.length };
+    }
+    const w = base.flatMap((l) => wrapLine(l.t, l.bold, minPt, safeW));
+    return { lines: w, size: minPt, shrunk: true, wrapped: true, tooTall: true };
+  }
+
+  function labelsFor(sel) {
+    return sel.map(({ r }) => addressLines(r).map(pdfSafe));
+  }
+  // jsPDF-standaardletters kennen alleen Latijn-1: andere tekens zonder accent schrijven.
+  function pdfSafe(s) {
+    let out = "";
+    for (const ch of String(s).replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, "-")) {
+      const c = ch.codePointAt(0);
+      if (c < 128 || (c >= 160 && c <= 255)) { out += ch; continue; }
+      const base = ch.normalize("NFD").replace(/[̀-ͯ]/g, "");
+      out += /^[\x20-\x7e]+$/.test(base) ? base : ({ "ł": "l", "Ł": "L", "ı": "i", "ø": "o", "đ": "d", "Đ": "D", "ß": "ss" }[ch] || "?");
+    }
+    return out;
+  }
+
+  // Gebruikte stickers per vel: usedSlots[vel] = Set van posities (0 = linksboven).
+  const usedSlots = [];
+  let usedKey = "";
+  function syncUsedKey() { const k = `${settings.cols}x${settings.rows}`; if (k !== usedKey) { usedSlots.length = 0; usedKey = k; } }
+  const isUsed = (p, i) => !!(usedSlots[p] && usedSlots[p].has(i));
+  // Verdeelt de etiketten over de vrije posities, vel per vel.
+  function placement(count, per) {
+    const pages = []; let li = 0, p = 0;
+    do {
+      const slots = [];
+      for (let i = 0; i < per; i++) slots.push(isUsed(p, i) ? { used: true, li: -1 } : { used: false, li: li < count ? li++ : -1 });
+      pages.push(slots); p++;
+    } while (li < count || (usedSlots[p] && usedSlots[p].size && p < usedSlots.length));
+    return pages;
+  }
+  function slotRect(i, L) {
+    const s = settings, c = i % s.cols, rr = Math.floor(i / s.cols);
+    return { x: L.ml + c * (s.w + s.gx) + s.ox, y: L.mt + rr * (s.h + s.gy) + s.oy };
+  }
+
+  function renderSheets() {
+    syncUsedKey();
+    const s = settings, L = layout();
+    const labels = labelsFor(selected());
+    const pages = placement(labels.length, L.per);
+    const nUsed = usedSlots.reduce((n, set) => n + (set ? set.size : 0), 0);
+    const der = $("derived");
+    const overflowX = L.ml < -0.01 || L.ml + L.totW > 210.01, overflowY = L.mt < -0.01 || L.mt + L.totH > 297.01;
+    der.className = "derived" + (overflowX || overflowY ? " bad" : "");
+    der.textContent = overflowX || overflowY
+      ? `De etiketten passen niet op A4 (${round1(L.totW)} × ${round1(L.totH)} mm). Pas afmetingen of marges aan.`
+      : `${L.per} etiketten per vel · marge boven ${round1(L.mt)} mm, links ${round1(L.ml)} mm · ${labels.length} etiket${labels.length === 1 ? "" : "ten"} op ${pages.length} vel${pages.length === 1 ? "" : "len"}`;
+    $("usedInfo").textContent = nUsed ? `${nUsed} sticker${nUsed === 1 ? "" : "s"} gemarkeerd als al gebruikt.` : "Klik op een sticker in het voorbeeld als die al van het vel is.";
+    $("clearUsed").hidden = !nUsed;
+
+    const host = $("sheets");
+    host.innerHTML = "";
+    let adjusted = 0;
+    pages.forEach((slots, p) => {
+      const cap = document.createElement("div"); cap.className = "sheetcap";
+      const free = slots.filter((x) => !x.used).length;
+      cap.innerHTML = `<span>Vel ${p + 1} van ${pages.length}</span><span>${free} vrij · ${slots.length - free} gebruikt</span>`;
+      const sheet = document.createElement("div"); sheet.className = "sheet";
+      slots.forEach((slot, i) => {
+        const { x, y } = slotRect(i, L);
+        const el = document.createElement("div"); el.className = "lbl";
+        el.setAttribute("role", "button"); el.tabIndex = 0;
+        el.dataset.page = p; el.dataset.slot = i;
+        el.setAttribute("aria-pressed", slot.used ? "true" : "false");
+        el.title = slot.used ? "Al gebruikt — klik om terug vrij te maken" : "Klik als deze sticker al gebruikt is";
+        el.style.left = (x / 210 * 100) + "%"; el.style.top = (y / 297 * 100) + "%";
+        el.style.width = (s.w / 210 * 100) + "%"; el.style.height = (s.h / 297 * 100) + "%";
+        // Procentuele padding rekent t.o.v. het vel, dus delen door 210 mm.
+        el.style.paddingLeft = el.style.paddingRight = (s.pad / 210 * 100) + "%";
+        if (slot.used) { el.classList.add("used"); el.innerHTML = '<em class="usedmark">gebruikt</em>'; }
+        else if (slot.li >= 0) {
+          const fit = fitLabel(labels[slot.li], s.w - 2 * s.pad, s.h - 2 * Math.min(s.pad, 2), s.fs, s.bold);
+          if (fit.wrapped || fit.shrunk) adjusted++;
+          if (fit.tooTall) el.classList.add("tight");
+          el.dataset.pt = fit.size;
+          el.innerHTML = fit.lines.map((l) => `<span class="${l.bold ? "name" : ""}">${esc(l.t)}</span>`).join("");
+        } else el.classList.add("free");
+        sheet.appendChild(el);
+      });
+      host.appendChild(cap); host.appendChild(sheet);
+      scaleSheet(sheet);
+    });
+    if (adjusted && !(overflowX || overflowY)) der.textContent += ` · ${adjusted} lang${adjusted === 1 ? " adres" : "e adressen"} over meer regels gezet`;
+    $("pdfBtn").disabled = !labels.length || overflowX || overflowY;
+  }
+  function toggleSlot(el) {
+    const p = +el.dataset.page, i = +el.dataset.slot;
+    if (!usedSlots[p]) usedSlots[p] = new Set();
+    if (usedSlots[p].has(i)) usedSlots[p].delete(i); else usedSlots[p].add(i);
+    renderSheets();
+    const again = document.querySelector(`.lbl[data-page="${p}"][data-slot="${i}"]`); if (again) again.focus();
+  }
+  $("sheets").addEventListener("click", (e) => { const el = e.target.closest(".lbl"); if (el) toggleSlot(el); });
+  $("sheets").addEventListener("keydown", (e) => {
+    const el = e.target.closest && e.target.closest(".lbl");
+    if (el && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggleSlot(el); }
+  });
+  $("clearUsed").addEventListener("click", () => { usedSlots.length = 0; renderSheets(); });
+  function scaleSheet(sheet) {
+    const pxPerMm = sheet.clientWidth / 210;
+    sheet.querySelectorAll(".lbl[data-pt]").forEach((el) => {
+      const pt = +el.dataset.pt; el.style.fontSize = (pt * PT * pxPerMm) + "px"; el.style.lineHeight = "1.22";
+    });
+  }
+  new ResizeObserver(() => document.querySelectorAll(".sheet").forEach(scaleSheet)).observe($("sheets"));
+
+  /* ---------- PDF ---------- */
+  function buildPdf() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+    const s = settings, L = layout();
+    const labels = labelsFor(selected());
+    const pages = placement(labels.length, L.per);
+    let first = true;
+    pages.forEach((slots) => {
+      if (!slots.some((x) => x.li >= 0)) return; // vel zonder nieuwe etiketten: niet afdrukken
+      if (!first) doc.addPage(); first = false;
+      slots.forEach((slot, i) => {
+        const { x, y } = slotRect(i, L);
+        if (slot.used) return; // al gebruikte sticker: niets op drukken
+        if (s.border) { doc.setDrawColor(170); doc.setLineWidth(0.15); doc.rect(x, y, s.w, s.h); }
+        if (slot.li < 0) return;
+        const fit = fitLabel(labels[slot.li], s.w - 2 * s.pad, s.h - 2 * Math.min(s.pad, 2), s.fs, s.bold);
+        const lh = fit.size * PT * 1.22;
+        const blockH = fit.lines.length * lh;
+        let ty = y + Math.max(0.5, (s.h - blockH) / 2) + lh * 0.78;
+        fit.lines.forEach((l) => {
+          doc.setFont("helvetica", l.bold ? "bold" : "normal"); doc.setFontSize(fit.size);
+          doc.text(l.t, x + s.pad, ty); ty += lh;
+        });
+      });
+    });
+    return doc;
+  }
+
+  let downloads = null;
+  if (window.claude && window.claude.use) window.claude.use("downloads").then((d) => { downloads = d; }).catch(() => {});
+
+  $("pdfBtn").addEventListener("click", async () => {
+    const st = $("status"); st.className = "status"; st.textContent = "PDF maken…";
+    try {
+      const doc = buildPdf();
+      const end = periodEnd;
+      const p2 = (n) => String(n).padStart(2, "0");
+      const filename = `verjaardagen_${periodStart.getFullYear()}-${p2(periodStart.getMonth() + 1)}-${p2(periodStart.getDate())}_tot_${p2(end.getDate())}-${p2(end.getMonth() + 1)}.pdf`;
+      const blob = doc.output("blob");
+      if (downloads) {
+        await downloads.save({ filename, data: blob });
+        st.className = "status ok"; st.textContent = `${filename} opgeslagen.`;
+      } else {
+        const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        st.className = "status ok"; st.textContent = `${filename} klaargezet.`;
+      }
+    } catch (e) {
+      st.className = "status bad";
+      st.textContent = e && e.code === "declined" ? "Downloaden geannuleerd." : `PDF downloaden lukte niet${e && e.message ? ": " + e.message : ""}.`;
+    }
+  });
+
+  /* ---------- invoer (meerdere lijsten) ---------- */
+  let sources = []; // { key, file, group, rows, sample }
+  let nextId = 0;
+  function groupFor(file, hasFirst) {
+    if (/personeel|leerkracht|leraar|docent|staff|lesgever/i.test(file)) return "Leerkracht";
+    if (/leerling|werklijst|student/i.test(file)) return "Leerling";
+    return hasFirst ? "Leerling" : "Leerkracht";
+  }
+  function addSource(raw, file, sample) {
+    const { rows: mapped, missing, hasFirst } = mapRows(raw);
+    const group = sample ? "Leerling" : groupFor(file, hasFirst);
+    const key = sample ? "__voorbeeld" : file;
+    // Zelfde bestand opnieuw: vervangen. Echte lijst: voorbeeld verdwijnt.
+    for (const old of sources.filter((x) => x.key === key || (!sample && x.sample))) old.rows.forEach((r) => excluded.delete(r.id));
+    sources = sources.filter((x) => x.key !== key && (sample || !x.sample));
+    const list = mapped.map((r) => { r.id = nextId++; r.group = group; r.src = file; return enrich(r); });
+    // Zonder volledig adres kan er geen kaart vertrekken: standaard niet aanvinken.
+    for (const r of list) if (r.addrIncomplete) excluded.add(r.id);
+    sources.push({ key, file, group, rows: list, sample, missing });
+    rebuild();
+    return { count: list.length, missing };
+  }
+  function removeSource(key) {
+    const src = sources.find((x) => x.key === key); if (!src) return;
+    src.rows.forEach((r) => excluded.delete(r.id));
+    sources = sources.filter((x) => x.key !== key);
+    if (!sources.length) addSource(sampleRows(), "Voorbeeld", true); else rebuild();
+  }
+  function rebuild() {
+    sources.sort((x, y) => (x.group === y.group ? 0 : x.group === "Leerling" ? -1 : 1));
+    rows = sources.flatMap((x) => x.rows);
+    // Iemand die in twee lijsten staat (zelfde rijksregisternummer) krijgt één kaart.
+    const seen = new Map();
+    for (const r of rows) {
+      const was = r.dupOf; r.dupOf = null;
+      if (r.rrn && r.rrn.length === 11) { if (seen.has(r.rrn)) r.dupOf = seen.get(r.rrn); else seen.set(r.rrn, r); }
+      if (r.dupOf && !was) excluded.add(r.id);
+    }
+    isSample = sources.every((x) => x.sample);
+    renderSources(); renderIssues(); render();
+  }
+  function renderSources() {
+    $("sources").innerHTML = sources.map((x) => x.sample
+      ? `<span class="pill example">Voorbeeldgegevens</span>`
+      : `<span class="pill real" title="${esc(x.file)}">${esc(x.group === "Leerkracht" ? "Leerkrachten" : "Leerlingen")} · ${x.rows.length}<button type="button" data-key="${esc(x.key)}" aria-label="${esc(x.file)} verwijderen">×</button></span>`).join("");
+  }
+  $("sources").addEventListener("click", (e) => { const b = e.target.closest("button[data-key]"); if (b) removeSource(b.dataset.key); });
+
+  $("fileIn").addEventListener("change", async (ev) => {
+    const files = [...ev.target.files]; if (!files.length) return;
+    const st = $("status"); st.className = "status"; st.textContent = "";
+    const msgs = [], errs = [];
+    for (const f of files) {
+      try {
+        const buf = await f.arrayBuffer();
+        const wb = XLSX.read(buf, { type: "array", cellDates: true });
+        const raw = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: null, raw: true });
+        const res = addSource(raw, f.name, false);
+        if (!res.count) errs.push(`${f.name}: geen personen gevonden in het eerste werkblad`);
+        else if (res.missing.length) errs.push(`${f.name}: kolommen niet gevonden (${res.missing.join(", ")})`);
+        else msgs.push(`${f.name}: ${res.count}`);
+      } catch (e) { errs.push(`${f.name}: kon niet gelezen worden`); }
+    }
+    if (errs.length) { st.className = "status bad"; st.textContent = errs.join(" · ") + "."; }
+    else { st.className = "status ok"; st.textContent = `Geladen: ${msgs.join(" · ")}.`; }
+    ev.target.value = "";
+  });
+
+  $("tbody").addEventListener("change", (e) => {
+    const id = e.target.dataset && e.target.dataset.id; if (id == null) return;
+    if (e.target.checked) excluded.delete(+id); else excluded.add(+id);
+    render();
+  });
+  $("checkAll").addEventListener("change", (e) => {
+    for (const c of current) { if (e.target.checked) excluded.delete(c.r.id); else excluded.add(c.r.id); }
+    render();
+  });
+  // Pijlen volgen het verzendschema; buiten het schema schuiven ze per week.
+  function step(dir) {
+    if (batchIdx >= 0 && selectBatch(batchIdx + dir)) return render();
+    if (batchIdx < 0) {
+      const i = dir > 0 ? schedule.findIndex((x) => x.start > periodStart) : schedule.map((x) => x.start < periodStart).lastIndexOf(true);
+      if (selectBatch(i)) return render();
+    }
+    batchIdx = -1;
+    if (dir > 0) setWeek(snapToStart(addDays(periodEnd, 1))); else setWeek(snapToStart(addDays(periodStart, -1)));
+    render();
+  }
+  $("prevWeek").addEventListener("click", () => step(-1));
+  $("nextWeek").addEventListener("click", () => step(1));
+  $("thisPickup").addEventListener("click", () => { if (!selectBatch(upcomingIdx())) { batchIdx = -1; setWeek(defaultPeriodStart()); } render(); });
+  $("from").addEventListener("change", (e) => { const d = parseDate(e.target.value); if (d) { batchIdx = -1; setRange(d, periodEnd); render(); } });
+  $("to").addEventListener("change", (e) => { const d = parseDate(e.target.value); if (d) { batchIdx = -1; setRange(periodStart, d); render(); } });
+
+  $("preset").addEventListener("change", (e) => {
+    settings.preset = e.target.value;
+    if (PRESETS[e.target.value]) Object.assign(settings, PRESETS[e.target.value]);
+    save(); writeSettingsToForm(); renderSheets();
+  });
+  for (const [k, id] of Object.entries(numIds)) {
+    $(id).addEventListener("input", (e) => {
+      const v = parseFloat(String(e.target.value).replace(",", "."));
+      if (isNaN(v)) return;
+      settings[k] = ["cols", "rows"].includes(k) ? Math.max(1, Math.round(v)) : v;
+      if (["cols", "rows", "w", "h", "gx", "gy", "mt", "ml"].includes(k)) { settings.preset = "custom"; $("preset").value = "custom"; }
+      save();
+      if (settings.center) { const L = layout(); $("s-mt").value = round1(L.mt); $("s-ml").value = round1(L.ml); }
+      renderSheets();
+    });
+  }
+  for (const [k, id] of Object.entries(boolIds)) {
+    $(id).addEventListener("change", (e) => {
+      settings[k] = e.target.checked; save(); writeSettingsToForm();
+      if (k === "zeros") render(); else renderSheets();
+    });
+  }
+
+  /* ---------- start ---------- */
+  writeSettingsToForm();
+  setWeek(defaultPeriodStart());
+  renderPlan();
+  selectBatch(upcomingIdx());
+  addSource(sampleRows(), "Voorbeeld", true);
+
+
+})();
+</script>
+
+</body>
+</html>
